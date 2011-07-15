@@ -37,7 +37,11 @@ private:
 	v8::Local<v8::Value> _value;
 };
 
+void addNodePath(string path);
 void init(string startup_script);
+
+typedef v8::Handle<v8::Value> (*Function)(const v8::Arguments& args);
+void setFunction(string funcname, Function function);
 
 Value $(string source, string source_name = "<string>");
 Value $$(string path);

@@ -21,6 +21,8 @@ static ev_prepare prepare_watcher;
 	
 static v8::Handle<v8::Value> ofxInit(const v8::Arguments& args)
 {
+	v8::HandleScope scope;
+	
 	v8::Local<v8::Object> require = args[0]->ToObject();
 	v8::Local<v8::Object> module = args[1]->ToObject();
 	
@@ -33,6 +35,15 @@ static v8::Handle<v8::Value> ofxInit(const v8::Arguments& args)
 	return v8::Undefined();
 }
 	
+static v8::Handle<v8::Value> __ofToDataPath(const v8::Arguments& args)
+{
+	v8::HandleScope scope;
+	
+	string path = *v8::String::Utf8Value(args[0]);
+	path = ofToDataPath(path, true);
+	return v8::String::New(path.c_str());
+}
+	
 static void node_init(EV_P_ ev_prepare *watcher, int revents)
 {
 	v8::HandleScope scope;
@@ -42,6 +53,9 @@ static void node_init(EV_P_ ev_prepare *watcher, int revents)
 	v8::Local<v8::Object> global = node::context->Global();
 	global->Set(v8::String::NewSymbol("ofxInit"), 
 				v8::FunctionTemplate::New(ofxInit)->GetFunction());
+	
+	global->Set(v8::String::NewSymbol("ofToDataPath"), 
+				v8::FunctionTemplate::New(__ofToDataPath)->GetFunction());
 	
 	ev_prepare_stop(&prepare_watcher);
 }
@@ -62,7 +76,13 @@ public:
 	
 };
 	
-	static NodeEventListener listener;
+static NodeEventListener listener;
+static vector<string> paths;
+	
+void addNodePath(string path)
+{
+	paths.push_back(path);
+}
 
 void init(string startup_script)
 {
@@ -79,20 +99,16 @@ void init(string startup_script)
 	
 	string NODE_PATH;
 	
+	for (int i = 0; i < paths.size(); i++)
+	{
+		NODE_PATH = ofToDataPath(paths[i], true) + ":" + NODE_PATH;
+	}
+	
 	const char *NODE_PATH_cstr = getenv("NODE_PATH");
 	
 	if (NODE_PATH_cstr)
 	{
-		NODE_PATH = NODE_PATH_cstr;
-	}
-	
-	if (NODE_PATH.size() > 0)
-	{
-		NODE_PATH = ofToDataPath("node", true) + ":" + NODE_PATH;
-	}
-	else
-	{
-		NODE_PATH = ofToDataPath("node", true);
+		NODE_PATH += string(NODE_PATH_cstr);
 	}
 	
 	setenv("NODE_PATH", NODE_PATH.c_str(), 1);
@@ -156,5 +172,15 @@ void Value::print()
 {
 	cout << toString() << endl;
 }
-	
+
+void setFunction(string funcname, Function function)
+{
+	v8::HandleScope scope;
+	v8::Context::Scope context_scope(node::context);
+
+	v8::Local<v8::Object> global = node::context->Global();
+	global->Set(v8::String::NewSymbol(funcname.c_str()), 
+				v8::FunctionTemplate::New(function)->GetFunction());
+}
+
 }
