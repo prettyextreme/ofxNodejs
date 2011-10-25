@@ -15,7 +15,7 @@ public:
 
 	Function() {}
 	Function(string name) { bind(name); }
-	virtual ~Function();
+	virtual ~Function() { unbind(); }
 
 	void bind(string funcname_);
 	void unbind();
