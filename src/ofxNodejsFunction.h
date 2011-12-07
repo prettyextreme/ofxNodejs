@@ -1,31 +1,90 @@
 #pragma once
 
 #include "ofMain.h"
-
 #include "v8.h"
 
 namespace ofxNodejs
 {
 
+class Object;
+	
 class Function
 {
-	string funcname;
-
 public:
-
-	Function() {}
-	Function(string name) { bind(name); }
-	virtual ~Function() { unbind(); }
-
-	void bind(string funcname_);
-	void unbind();
-
-	virtual v8::Handle<v8::Value> exec(const v8::Arguments& args);
 	
+	Function() {}
+	Function(v8::Handle<v8::Function> func);
+	
+	Object operator()();
+	Object operator()(const Object& a1);
+	
+	Object operator()(const Object& a1, 
+					  const Object& a2);
+	
+	Object operator()(const Object& a1, 
+					  const Object& a2, 
+					  const Object& a3);
+	
+	Object operator()(const Object& a1, 
+					  const Object& a2, 
+					  const Object& a3,
+					  const Object& a4);
+	
+	Object operator()(const Object& a1,
+					  const Object& a2,
+					  const Object& a3, 
+					  const Object& a4,
+					  const Object& a5);
 
-	static map<string, Function*> callback_map;
-	static v8::Handle<v8::Value> callback(const v8::Arguments& args);
+	Object operator()(const Object& a1,
+					  const Object& a2,
+					  const Object& a3, 
+					  const Object& a4,
+					  const Object& a5,
+					  const Object& a6);
 
+	Object operator()(const Object& a1,
+					  const Object& a2,
+					  const Object& a3,
+					  const Object& a4,
+					  const Object& a5,
+					  const Object& a6, 
+					  const Object& a7);
+	
+	Object operator()(const Object& a1, 
+					  const Object& a2,
+					  const Object& a3, 
+					  const Object& a4,
+					  const Object& a5,
+					  const Object& a6,
+					  const Object& a7,
+					  const Object& a8);
+	
+	Object operator()(const Object& a1,
+					  const Object& a2,
+					  const Object& a3,
+					  const Object& a4, 
+					  const Object& a5,
+					  const Object& a6,
+					  const Object& a7,
+					  const Object& a8, 
+					  const Object& a9);
+	
+	Object operator()(const Object& a1,
+					  const Object& a2,
+					  const Object& a3,
+					  const Object& a4, 
+					  const Object& a5,
+					  const Object& a6,
+					  const Object& a7,
+					  const Object& a8, 
+					  const Object& a9,
+					  const Object& a10);
+	
+private:
+	
+	v8::Handle<v8::Function> f;
+	
 };
 
 }

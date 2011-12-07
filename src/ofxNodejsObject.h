@@ -1,37 +1,48 @@
 #pragma once
 
+#include <tr1/unordered_map>
+
 #include "ofMain.h"
 #include "v8.h"
+
+#include "ofxNodejsFunction.h"
 
 namespace ofxNodejs
 {
 
-//
-// ObjectProxy
-//
-
 class Object;
 typedef vector<Object> Array;
+typedef std::tr1::unordered_map<Object, Object> Hash; // TODO: implement type convert method
 
 class Object
 {
 public:
 
-	Object() { v = v8::Null(); }
-	Object(v8::Handle<v8::Value> value) : v(value) {}
-
-	Object(bool o) { v = v8::Boolean::New(o); }
-	Object(int32_t o) { v = v8::Int32::New(o); }
-	Object(uint32_t o) { v = v8::Uint32::New(o); }
-	Object(float o) { v = v8::Number::New(o); }
-	Object(double o) { v = v8::Number::New(o); }
-	Object(string o) { v = v8::String::New(o.c_str()); }
+	Object();
+	Object(v8::Handle<v8::Value> value);
+	Object(bool o);
+	Object(int o);
+	Object(unsigned int o);
+	Object(float o);
+	Object(double o);
+	Object(string o);
+	Object(const char* o);
 	Object(Array o);
+	
+	~Object();
 
+	Object(const Object& copy);
+	Object& operator=(const Object& copy);
+	
 	template<class T>
-	inline T as() {}
+	inline T as() const
+	{
+		ofLogError("ofxNodejs", "invalid type");
+		return T();
+	}
 
-	operator v8::Handle<v8::Value>&() { return v; }
+	operator v8::Handle<v8::Value>() { return v; }
+	operator const v8::Handle<v8::Value>() const { return v; }
 
 private:
 
@@ -39,22 +50,42 @@ private:
 };
 
 template<>
-inline bool Object::as() { return v->BooleanValue(); }
+inline bool Object::as() const
+{
+	v8::HandleScope scope;
+	return v->BooleanValue();
+}
 
 template<>
-inline int32_t Object::as() { return v->Int32Value(); }
+inline int32_t Object::as() const
+{
+	v8::HandleScope scope;
+	return v->Int32Value();
+}
 
 template<>
-inline uint32_t Object::as() { return v->Uint32Value(); }
+inline uint32_t Object::as() const
+{
+	v8::HandleScope scope;
+	return v->Uint32Value();
+}
 
 template<>
-inline float Object::as() { return v->NumberValue(); }
+inline float Object::as() const
+{
+	v8::HandleScope scope;
+	return v->NumberValue();
+}
 
 template<>
-inline double Object::as() { return v->NumberValue(); }
+inline double Object::as() const
+{
+	v8::HandleScope scope;
+	return v->NumberValue();
+}
 
 template<>
-inline string Object::as()
+inline string Object::as() const
 {
 	v8::HandleScope scope;
 
@@ -75,7 +106,7 @@ inline string Object::as()
 	}
 	else if (v->IsString())
 	{
-		return string("'") + *v8::String::Utf8Value(v) + "'";
+		return *v8::String::Utf8Value(v);
 	}
 	else if (v->IsObject())
 	{
@@ -88,9 +119,15 @@ inline string Object::as()
 }
 
 template<>
-inline Array Object::as()
+inline Array Object::as() const
 {
 	v8::HandleScope scope;
+
+	if (!v->IsArray())
+	{
+		ofLogError("ofxNodejs", "this is not an Array");
+		return Array();
+	}
 
 	Array result;
 	v8::Local<v8::Array> a = v8::Local<v8::Array>(v8::Array::Cast(*v));
@@ -101,4 +138,19 @@ inline Array Object::as()
 	return result;
 }
 
+template<>
+inline Function Object::as() const
+{
+	v8::HandleScope scope;
+	
+	if (!v->IsFunction())
+	{
+		ofLogError("ofxNodejs", "this is not a Function");
+		return Function();
+	}
+
+	v8::Local<v8::Function> func = v8::Local<v8::Function>(v8::Function::Cast(*v));
+	return Function(func);
+}
+	
 }

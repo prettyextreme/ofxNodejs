@@ -10,9 +10,6 @@
 namespace ofxNodejs
 {
 
-void init();
-void addNodePath(string path);
-
 Object $(string source, string source_name = "<string>");
 Object $$(string path);
 	
