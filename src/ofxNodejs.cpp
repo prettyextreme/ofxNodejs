@@ -66,7 +66,19 @@ static void initNode()
 	const char *argv[] = { "node", "" };
 	int argc = 1;
 
+	string NODE_PATH = ofToDataPath("", true) + ";";
+	const char *NODE_PATH_cstr = getenv("NODE_PATH");
+	
+	if (NODE_PATH_cstr)
+	{
+		NODE_PATH += string(NODE_PATH_cstr);
+	}
+	
+	setenv("NODE_PATH", NODE_PATH.c_str(), 1);
 	setenv("NODE_DISABLE_COLORS", "1", 1);
+	setenv("NODE_NO_READLINE", "1", 1);
+	
+	cout << "NODE_PATH::" << getenv("NODE_PATH") << endl;
 
 	uv_prepare_init(uv_default_loop(), &prepare_watcher);
 	uv_prepare_start(&prepare_watcher, node_init);
@@ -86,7 +98,7 @@ static const char*ToCString(const v8::String::Utf8Value& value)
 	return *value ? *value : "<string conversion failed>";
 }
 
-static void ReportException(v8::TryCatch* try_catch)
+void ReportException(v8::TryCatch* try_catch)
 {
 	v8::HandleScope handle_scope;
 	v8::String::Utf8Value exception(try_catch->Exception());
@@ -185,6 +197,19 @@ Object $$(string path)
 		buffer = ofBufferFromFile(path);
 
 	return $(buffer.getText(), path);
+}
+
+Function $f(string funcname, v8::InvocationCallback function)
+{
+	initNode();
+	
+	v8::HandleScope scope;
+	v8::Local<v8::Object> global = node::context->Global();
+	
+	v8::Local<v8::Function> func = v8::FunctionTemplate::New(function)->GetFunction();
+	global->Set(v8::String::NewSymbol(funcname.c_str()), func);
+	
+	return Function(func);
 }
 
 }
