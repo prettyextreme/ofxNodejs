@@ -54,6 +54,12 @@ void addNodePath(string path)
 
 static bool inited = false;
 
+static v8::Handle<v8::Value> _ofToDataPath(const v8::Arguments& args)
+{
+	string path = ofToDataPath(Object(args[0]).as<string>(), true);
+	return Object(path);
+}
+	
 static void initNode()
 {
 	if (inited) return;
@@ -91,6 +97,8 @@ static void initNode()
 
 	ofAddListener(ofEvents.update, &listener, &NodeEventListener::onUpdate);
 	ofAddListener(ofEvents.exit, &listener, &NodeEventListener::onExit);
+	
+	$f("ofToDataPath", _ofToDataPath);
 }
 
 static const char*ToCString(const v8::String::Utf8Value& value)
