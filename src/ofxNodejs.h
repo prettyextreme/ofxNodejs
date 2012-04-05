@@ -13,9 +13,11 @@
 namespace ofxNodejs
 {
 
-Object $(string source, string source_name = "<string>");
-Object $$(string path);
+	void appendNodePath(string path);
+	
+	Object $(string source, string source_name = "<string>");
+	Object $$(string path);
 
-Function $f(string funcname, v8::InvocationCallback function);
+	Function $f(string funcname, v8::InvocationCallback function);
 
 }

@@ -1,48 +1,34 @@
-example
-=======
+# ofxNodejs
 
-	#include "ofxNodejs.h"
+## Setup notes
 
-	void testApp::setup()
-	{
-		// setup ofxNodejs
-		ofxNodejs::init("node/main.js");
+Add compiler flags to Project.xcconfig
+
+	OTHER_LDFLAGS = $(OF_CORE_LIBS) -lcrypto -lssl
+
+## How to build libnode (option)
+
+ofxNodejs needs custom node.js library: Here is how to compile libnode.
+
+	# checkout patched source code
+	$ git clone git@github.com:satoruhiga/node.git
+	$ cd node
+	$ git checkout origin/ofxNodejs-v0.6.14-release -b ofxNodejs-v0.6.14-release
 	
-		// eval script from string
-		$("console.log('hello world!')");
+	# build
+	$ ./configure --dest-cpu=ia32 --product-type=cstaticlib --openssl-includes=/usr/include --openssl-libpath=/usr/lib
+	$ make staticlib
 	
-		// eval script from file
-		$$("node/myscript.js");
+	# maybe link error will occurred
+	# you need to create 32bit-version of uv.a
 	
-		$('var a = 0');
+	$ cd out/Release/deps/uv
+	$ env CFLAGS="-arch i386" CPPFLAGS='-arch i386' make
+
+	# build again	
+	$ cd ../../../../
+	$ make staticlib
 	
-		// start web server!
-		// variable 'a' will set zero when access to http://localhost:8001
-		$("var http = require('http');"
-		  "http.createServer(function (request, response) {"
-		  "    response.writeHead(200, {'Content-Type': 'text/plain'});"
-		  "    response.end('Hello oF!\\n');"
-		  "    a = 0;"
-		  "}).listen(8001);");
-	}
-
-	void testApp::update()
-	{
-		// variable scope is global
-		$("console.log(a); a += 1");
-	}
-
-how to build node.js
-====================
-
-ofxNodejs needs custom node.js: Here is how to compile node.js as library.
-
-	# get sourcecode
-	git clone git@github.com:satoruhiga/node.git
-	cd node
-	git fetch git@github.com:satoruhiga/node.git embed
-	git branch embed
-
-	# configure & build
-	ARCHFLAGS="-arch i386" CFLAGS="-arch i386" LDFLAGS="-arch i386" ./configure --product-type=cstaticlib --dest-cpu=ia32
-	make staticlib
+	# find staticlib
+	$ find . -name "*.a"
+	

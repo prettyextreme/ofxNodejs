@@ -47,7 +47,7 @@ public:
 static NodeEventListener listener;
 static vector<string> paths;
 
-void addNodePath(string path)
+void appendNodePath(string path)
 {
 	paths.push_back(path);
 }
@@ -72,7 +72,13 @@ static void initNode()
 	const char *argv[] = { "node", "" };
 	int argc = 1;
 
-	string NODE_PATH = ofToDataPath("", true) + ";";
+	string NODE_PATH = ofToDataPath("", true) + ";$HOME/.node_libraries;";
+	
+	for (int i = 0; i < paths.size(); i++)
+	{
+		NODE_PATH += paths[i] + ";";
+	}
+	
 	const char *NODE_PATH_cstr = getenv("NODE_PATH");
 	
 	if (NODE_PATH_cstr)
