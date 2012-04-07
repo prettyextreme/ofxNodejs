@@ -14,6 +14,7 @@ namespace ofxNodejs
 {
 
 	void appendNodePath(string path);
+	vector<string> getNodePath();
 	
 	Object $(string source, string source_name = "<string>");
 	Object $$(string path);

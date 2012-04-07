@@ -51,6 +51,11 @@ void appendNodePath(string path)
 {
 	paths.push_back(path);
 }
+	
+vector<string> getNodePath()
+{
+	return paths;
+}
 
 static bool inited = false;
 
@@ -72,25 +77,23 @@ static void initNode()
 	const char *argv[] = { "node", "" };
 	int argc = 1;
 
-	string NODE_PATH = ofToDataPath("", true) + ";$HOME/.node_libraries;";
+	paths.push_back(ofToDataPath("", true));
 	
+	const char *NODE_PATH_cstr = getenv("NODE_PATH");
+	if (NODE_PATH_cstr)
+	{
+		paths.push_back(NODE_PATH_cstr);
+	}
+	
+	string NODE_PATH;
 	for (int i = 0; i < paths.size(); i++)
 	{
 		NODE_PATH += paths[i] + ";";
 	}
 	
-	const char *NODE_PATH_cstr = getenv("NODE_PATH");
-	
-	if (NODE_PATH_cstr)
-	{
-		NODE_PATH += string(NODE_PATH_cstr);
-	}
-	
 	setenv("NODE_PATH", NODE_PATH.c_str(), 1);
 	setenv("NODE_DISABLE_COLORS", "1", 1);
 	setenv("NODE_NO_READLINE", "1", 1);
-	
-	cout << "NODE_PATH::" << getenv("NODE_PATH") << endl;
 
 	uv_prepare_init(uv_default_loop(), &prepare_watcher);
 	uv_prepare_start(&prepare_watcher, node_init);
