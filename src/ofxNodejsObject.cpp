@@ -77,7 +77,6 @@ Object::~Object()
 {
 	v8::HandleScope scope;
 	
-	// don't dispose function. it will be crash
 	if (!v->IsFunction())
 	{
 		v8::Persistent<v8::Value> p = v8::Persistent<v8::Value>(v);
@@ -89,12 +88,7 @@ Object::~Object()
 
 Object::Object(const Object& copy)
 {
-	if (!v->IsFunction())
-	{
-		v8::Persistent<v8::Value> p = v8::Persistent<v8::Value>(v);
-		p.Dispose();
-	}
-	v = v8::Persistent<v8::Value>::New(copy.v);
+	*this = copy;
 }
 
 Object& Object::operator=(const Object& copy)

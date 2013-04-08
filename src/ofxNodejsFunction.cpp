@@ -9,7 +9,15 @@ extern void ReportException(v8::TryCatch* try_catch);
 	
 Function::Function(v8::Handle<v8::Function> func) : f(func)
 {
+}
 	
+Function::Function(const string& object, const string& method)
+{
+	v8::Handle<v8::Context> context = v8::Context::GetCurrent();
+	v8::Handle<v8::Object> global = context->Global();
+
+	v8::Handle<v8::Object> object_handle = global->Get(v8::String::New(object.c_str()))->ToObject();
+	f = v8::Handle<v8::Function>::Cast(object_handle->Get(v8::String::New(method.c_str())));
 }
 
 Object Function::operator()()

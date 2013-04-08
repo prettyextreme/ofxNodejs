@@ -13,9 +13,11 @@ class Function
 public:
 	
 	Function() {}
+	Function(const string& object, const string& method);
 	Function(v8::Handle<v8::Function> func);
 	
 	Object operator()();
+	
 	Object operator()(const Object& a1);
 	
 	Object operator()(const Object& a1, 

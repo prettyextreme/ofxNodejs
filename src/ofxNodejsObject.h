@@ -37,8 +37,42 @@ public:
 	template<class T>
 	inline T as() const
 	{
-		ofLogError("ofxNodejs", "invalid type");
+		ofLogError("ofxNodejs") << "invalid type";
 		return T();
+	}
+	
+	bool isArray() { return v->IsArray(); }
+	
+	size_t size()
+	{
+		if (isArray())
+		{
+			v8::Array *arr = v8::Array::Cast(*v);
+			return arr->Length();
+		}
+		else return 0;
+	}
+	
+	Object at(size_t index) {
+		if (isArray())
+		{
+			v8::HandleScope handle_scope;
+			
+			v8::Array *arr = v8::Array::Cast(*v);
+			v8::Handle<v8::Value> obj = arr->Get(index);
+			if (*obj)
+			{
+				return Object(obj);
+			}
+			else
+			{
+				return Object(v8::Null());
+			}
+		}
+		else
+		{
+			return Object(v8::Undefined());
+		}
 	}
 
 	operator v8::Handle<v8::Value>() { return v; }
@@ -52,35 +86,30 @@ private:
 template<>
 inline bool Object::as() const
 {
-	v8::HandleScope scope;
 	return v->BooleanValue();
 }
 
 template<>
 inline int32_t Object::as() const
 {
-	v8::HandleScope scope;
 	return v->Int32Value();
 }
 
 template<>
 inline uint32_t Object::as() const
 {
-	v8::HandleScope scope;
 	return v->Uint32Value();
 }
 
 template<>
 inline float Object::as() const
 {
-	v8::HandleScope scope;
 	return v->NumberValue();
 }
 
 template<>
 inline double Object::as() const
 {
-	v8::HandleScope scope;
 	return v->NumberValue();
 }
 
@@ -110,7 +139,10 @@ inline string Object::as() const
 	}
 	else if (v->IsObject())
 	{
-		return *v8::String::Utf8Value(v->ToObject()->ObjectProtoToString());
+//		return *v8::String::Utf8Value(v->ToObject()->ObjectProtoToString());
+		
+		v8::HandleScope scope;
+		return ofxNodejs::Function("JSON", "stringify")(*this).as<string>();
 	}
 	else
 	{
@@ -125,7 +157,7 @@ inline Array Object::as() const
 
 	if (!v->IsArray())
 	{
-		ofLogError("ofxNodejs", "this is not an Array");
+		ofLogError("ofxNodejs") << "!array";
 		return Array();
 	}
 
@@ -145,12 +177,18 @@ inline Function Object::as() const
 	
 	if (!v->IsFunction())
 	{
-		ofLogError("ofxNodejs", "this is not a Function");
+		ofLogError("ofxNodejs") << "!function";
 		return Function();
 	}
 
 	v8::Local<v8::Function> func = v8::Local<v8::Function>(v8::Function::Cast(*v));
 	return Function(func);
 }
-	
+
+inline std::ostream& operator<<(std::ostream& os, const Object& obj)
+{
+	os << obj.as<string>();
+	return os;
+}
+
 }

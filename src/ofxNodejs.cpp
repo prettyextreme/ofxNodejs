@@ -5,10 +5,6 @@
 
 using namespace v8;
 
-static v8::Context::Scope *context_scope;
-static v8::Persistent<v8::Context> context;
-static v8::Handle<v8::Object> process_l;
-
 namespace node
 {
 	extern char** Init(int argc, char *argv[]);
@@ -20,6 +16,9 @@ namespace node
 
 namespace ofxNodejs
 {
+static v8::Context::Scope *context_scope;
+static v8::Persistent<v8::Context> context;
+static v8::Handle<v8::Object> process_l;
 
 class NodeEventListener
 {
@@ -58,13 +57,9 @@ vector<string> getNodePath()
 {
 	return paths;
 }
-
-static v8::Handle<v8::Value> _ofToDataPath(const v8::Arguments& args)
-{
-	string path = ofToDataPath(Object(args[0]).as<string>(), true);
-	return Object(path);
-}
 	
+static void registerBindings();
+
 static void initNode()
 {
 	static bool inited = false;
@@ -127,7 +122,7 @@ static void initNode()
 	ofAddListener(ofEvents().update, &listener, &NodeEventListener::onUpdate);
 	ofAddListener(ofEvents().exit, &listener, &NodeEventListener::onExit);
 	
-	registerFunc("ofToDataPath", _ofToDataPath);
+	registerBindings();
 }
 
 static const char* ToCString(const v8::String::Utf8Value& value)
@@ -249,6 +244,163 @@ Function registerFunc(string funcname, v8::InvocationCallback function)
 	global->Set(v8::String::NewSymbol(funcname.c_str()), func);
 	
 	return Function(func);
+}
+
+// bindings
+
+static v8::Handle<v8::Value> _ofToDataPath(const v8::Arguments& args)
+{
+	string path = ofToDataPath(Object(args[0]).as<string>(), true);
+	return Object(path);
+}
+
+static v8::Handle<v8::Value> _ofGetElapsedTimef(const v8::Arguments& args)
+{
+	return Object(ofGetElapsedTimef());
+}
+
+static v8::Handle<v8::Value> _ofGetFrameNum(const v8::Arguments& args)
+{
+	return Object(ofGetFrameNum());
+}
+
+static v8::Handle<v8::Value> _ofNoise(const v8::Arguments& args)
+{
+	int n = args.Length();
+	float result = 0;
+	
+	if (n == 1)
+	{
+		result = ofNoise(Object(args[0]).as<float>());
+	}
+	else if (n == 2)
+	{
+		result = ofNoise(Object(args[0]).as<float>(),
+						 Object(args[1]).as<float>());
+	}
+	else if (n == 3)
+	{
+		result = ofNoise(Object(args[0]).as<float>(),
+						 Object(args[1]).as<float>(),
+						 Object(args[2]).as<float>());
+	}
+	else if (n == 4)
+	{
+		result = ofNoise(Object(args[0]).as<float>(),
+						 Object(args[1]).as<float>(),
+						 Object(args[2]).as<float>(),
+						 Object(args[3]).as<float>());
+	}
+	else
+	{
+		return v8::Null();
+	}
+	
+	return Object(result);
+}
+
+static v8::Handle<v8::Value> _ofSignedNoise(const v8::Arguments& args)
+{
+	int n = args.Length();
+	float result = 0;
+	
+	if (n == 1)
+	{
+		result = ofSignedNoise(Object(args[0]).as<float>());
+	}
+	else if (n == 2)
+	{
+		result = ofSignedNoise(Object(args[0]).as<float>(),
+							   Object(args[1]).as<float>());
+	}
+	else if (n == 3)
+	{
+		result = ofSignedNoise(Object(args[0]).as<float>(),
+							   Object(args[1]).as<float>(),
+							   Object(args[2]).as<float>());
+	}
+	else if (n == 4)
+	{
+		result = ofSignedNoise(Object(args[0]).as<float>(),
+							   Object(args[1]).as<float>(),
+							   Object(args[2]).as<float>(),
+							   Object(args[3]).as<float>());
+	}
+	else
+	{
+		return v8::Null();
+	}
+	
+	return Object(result);
+}
+
+static v8::Handle<v8::Value> _ofRandom(const v8::Arguments& args)
+{
+	int n = args.Length();
+	float result = 0;
+
+	if (n == 1)
+	{
+		result = ofRandom(Object(args[0]).as<float>());
+	}
+	else if (n == 2)
+	{
+		result = ofRandom(Object(args[0]).as<float>(),
+						  Object(args[1]).as<float>());
+	}
+	else
+	{
+		return v8::Null();
+	}
+
+	return Object(result);
+}
+
+static v8::Handle<v8::Value> _ofGetMouseX(const v8::Arguments& args)
+{
+	int n = args.Length();
+	float result = 0;
+	
+	if (n == 0)
+	{
+		result = ofGetMouseX();
+	}
+	else
+	{
+		return v8::Null();
+	}
+	
+	return Object(result);
+}
+
+static v8::Handle<v8::Value> _ofGetMouseY(const v8::Arguments& args)
+{
+	int n = args.Length();
+	float result = 0;
+	
+	if (n == 0)
+	{
+		result = ofGetMouseY();
+	}
+	else
+	{
+		return v8::Null();
+	}
+	
+	return Object(result);
+}
+
+
+static void registerBindings()
+{
+	registerFunc("ofToDataPath", _ofToDataPath);
+	registerFunc("ofGetElapsedTimef", _ofGetElapsedTimef);
+	registerFunc("ofGetFrameNum", _ofGetFrameNum);
+	registerFunc("ofNoise", _ofNoise);
+	registerFunc("ofSignedNoise", _ofSignedNoise);
+	registerFunc("ofRandom", _ofRandom);
+	registerFunc("ofGetMouseX", _ofGetMouseX);
+	registerFunc("ofGetMouseY", _ofGetMouseY);
 }
 
 }
