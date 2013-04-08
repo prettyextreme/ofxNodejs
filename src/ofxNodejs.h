@@ -16,9 +16,13 @@ namespace ofxNodejs
 	void appendNodePath(string path);
 	vector<string> getNodePath();
 	
-	Object $(string source, string source_name = "<string>");
-	Object $$(string path);
+	Object eval(const string& source, const string& source_name = "<string>");
+	inline Object $(const string& source, const string& source_name = "<string>") { return eval(source, source_name); }
+	
+	Object execFile(const string& path);
+	inline Object $$(const string& path) { return execFile(path); }
 
-	Function $f(string funcname, v8::InvocationCallback function);
+	Function registerFunc(string funcname, v8::InvocationCallback function);
+	inline Function $f(string funcname, v8::InvocationCallback function) { return registerFunc(funcname, function); }
 
 }

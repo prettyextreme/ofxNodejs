@@ -1,32 +1,25 @@
-#define EV_MULTIPLICITY 1
-#define EV_EMBED_ENABLE 0
-#define EV_FORK_ENABLE 0
-
 #include "ofxNodejs.h"
 
-#include <uv.h>
-#include <ev.h>
-#include <eio.h>
+#include "uv.h"
+#include "v8_typed_array.h"
+
+using namespace v8;
+
+static v8::Context::Scope *context_scope;
+static v8::Persistent<v8::Context> context;
+static v8::Handle<v8::Object> process_l;
 
 namespace node
 {
-extern v8::Persistent<v8::Context> context;
-extern int Start(int argc, char *argv[]);
-extern void Stop();
+	extern char** Init(int argc, char *argv[]);
+	extern Handle<Object> SetupProcessObject(int argc, char *argv[]);
+	extern void Load(Handle<Object> process_l);
+	extern void EmitExit(v8::Handle<v8::Object> process_l);
+	extern void RunAtExit();
 }
 
 namespace ofxNodejs
 {
-
-static uv_prepare_t prepare_watcher;
-
-static void node_init(uv_prepare_t *watcher, int revents)
-{
-	v8::HandleScope scope;
-	assert(watcher == &prepare_watcher);
-
-	uv_prepare_stop(watcher);
-}
 
 class NodeEventListener
 {
@@ -34,14 +27,23 @@ public:
 
 	void onUpdate(ofEventArgs&)
 	{
-		ev_run(uv_default_loop()->ev, EVRUN_NOWAIT);
+		uv_run(uv_default_loop(), UV_RUN_NOWAIT);
 	}
 
 	void onExit(ofEventArgs&)
 	{
-		node::Stop();
+		{
+			v8::HandleScope handle_scope;
+			
+			node::EmitExit(process_l);
+			node::RunAtExit();
+		}
+		context.Dispose();
+		
+		delete context_scope;
+		
+		v8::V8::Dispose();
 	}
-
 };
 
 static NodeEventListener listener;
@@ -57,8 +59,6 @@ vector<string> getNodePath()
 	return paths;
 }
 
-static bool inited = false;
-
 static v8::Handle<v8::Value> _ofToDataPath(const v8::Arguments& args)
 {
 	string path = ofToDataPath(Object(args[0]).as<string>(), true);
@@ -67,6 +67,7 @@ static v8::Handle<v8::Value> _ofToDataPath(const v8::Arguments& args)
 	
 static void initNode()
 {
+	static bool inited = false;
 	if (inited) return;
 	inited = true;
 
@@ -74,7 +75,7 @@ static void initNode()
 	// setup node.js
 	//
 
-	const char *argv[] = { "node", "" };
+	char *argv[] = { "node", "" };
 	int argc = 1;
 
 	paths.push_back(ofToDataPath("", true));
@@ -88,29 +89,48 @@ static void initNode()
 	string NODE_PATH;
 	for (int i = 0; i < paths.size(); i++)
 	{
+#ifdef TARGET_WIN32
 		NODE_PATH += paths[i] + ";";
+#else
+		NODE_PATH += paths[i] + ":";
+#endif
 	}
 	
 	setenv("NODE_PATH", NODE_PATH.c_str(), 1);
 	setenv("NODE_DISABLE_COLORS", "1", 1);
 	setenv("NODE_NO_READLINE", "1", 1);
 
-	uv_prepare_init(uv_default_loop(), &prepare_watcher);
-	uv_prepare_start(&prepare_watcher, node_init);
+	{
+		using namespace node;
+		
+		Init(argc, argv);
+		
+		V8::Initialize();
+		
+		v8::HandleScope handle_scope;
+		
+		context = Context::New();
+		context_scope = new Context::Scope(context);
 
-	node::Start(argc, (char**)argv);
+		process_l = node::SetupProcessObject(argc, argv);
+		v8_typed_array::AttachBindings(context->Global());
+		
+		Load(process_l);
+		
+		uv_run(uv_default_loop(), UV_RUN_NOWAIT);
+	}
 
 	//
 	// setup of events
 	//
 
-	ofAddListener(ofEvents.update, &listener, &NodeEventListener::onUpdate);
-	ofAddListener(ofEvents.exit, &listener, &NodeEventListener::onExit);
+	ofAddListener(ofEvents().update, &listener, &NodeEventListener::onUpdate);
+	ofAddListener(ofEvents().exit, &listener, &NodeEventListener::onExit);
 	
-	$f("ofToDataPath", _ofToDataPath);
+	registerFunc("ofToDataPath", _ofToDataPath);
 }
 
-static const char*ToCString(const v8::String::Utf8Value& value)
+static const char* ToCString(const v8::String::Utf8Value& value)
 {
 	return *value ? *value : "<string conversion failed>";
 }
@@ -193,7 +213,9 @@ static v8::Handle<v8::Value> ExecuteString(v8::Handle<v8::String> source, v8::Ha
 	}
 }
 
-Object $(string source, string source_name)
+//
+	
+Object eval(const string& source, const string& source_name)
 {
 	initNode();
 
@@ -202,7 +224,7 @@ Object $(string source, string source_name)
 						 v8::String::NewSymbol(source_name.c_str()));
 }
 
-Object $$(string path)
+Object execFile(const string& path)
 {
 	initNode();
 	
@@ -216,12 +238,12 @@ Object $$(string path)
 	return $(buffer.getText(), path);
 }
 
-Function $f(string funcname, v8::InvocationCallback function)
+Function registerFunc(string funcname, v8::InvocationCallback function)
 {
 	initNode();
 	
 	v8::HandleScope scope;
-	v8::Local<v8::Object> global = node::context->Global();
+	v8::Local<v8::Object> global = context->Global();
 	
 	v8::Local<v8::Function> func = v8::FunctionTemplate::New(function)->GetFunction();
 	global->Set(v8::String::NewSymbol(funcname.c_str()), func);
