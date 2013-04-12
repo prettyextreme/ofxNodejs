@@ -11,8 +11,6 @@ namespace ofxNodejs
 {
 
 class Object;
-typedef vector<Object> Array;
-typedef std::tr1::unordered_map<Object, Object> Hash; // TODO: implement type convert method
 
 class Object
 {
@@ -27,7 +25,6 @@ public:
 	Object(double o);
 	Object(string o);
 	Object(const char* o);
-	Object(Array o);
 	
 	~Object();
 
@@ -37,41 +34,58 @@ public:
 	template<class T>
 	inline T as() const
 	{
-		ofLogError("ofxNodejs") << "invalid type";
+		ofLogError("ofxNodejs") << "unregisted type";
 		return T();
 	}
 	
-	bool isArray() { return v->IsArray(); }
+	inline bool isArray() const { return v->IsArray(); }
+	inline bool isObject() const { return v->IsObject(); }
 	
 	size_t size()
 	{
+		v8::HandleScope handle_scope;
+		
 		if (isArray())
 		{
 			v8::Array *arr = v8::Array::Cast(*v);
 			return arr->Length();
 		}
+		else if (isObject())
+		{
+			v8::Object *obj = v8::Object::Cast(*v);
+			return obj->GetOwnPropertyNames()->Length();
+		}
 		else return 0;
 	}
 	
-	Object at(size_t index) {
-		if (isArray())
+	Object get(size_t index)
+	{
+		v8::HandleScope handle_scope;
+		
+		if (v->IsObject())
 		{
-			v8::HandleScope handle_scope;
-			
-			v8::Array *arr = v8::Array::Cast(*v);
-			v8::Handle<v8::Value> obj = arr->Get(index);
-			if (*obj)
-			{
-				return Object(obj);
-			}
-			else
-			{
-				return Object(v8::Null());
-			}
+			v8::Object *obj = v8::Object::Cast(*v);
+			return Object(obj->Get(index));
 		}
 		else
 		{
-			return Object(v8::Undefined());
+			return Object(v8::Null());
+		}
+	}
+	
+	Object get(const string& key)
+	{
+		v8::HandleScope handle_scope;
+		
+		if (v->IsObject())
+		{
+			v8::Object *obj = v8::Object::Cast(*v);
+			v8::Local<v8::String> key_v8 = v8::String::NewSymbol(key.c_str());
+			return Object(obj->Get(key_v8));
+		}
+		else
+		{
+			return Object(v8::Null());
 		}
 	}
 
@@ -139,8 +153,6 @@ inline string Object::as() const
 	}
 	else if (v->IsObject())
 	{
-//		return *v8::String::Utf8Value(v->ToObject()->ObjectProtoToString());
-		
 		v8::HandleScope scope;
 		return ofxNodejs::Function("JSON", "stringify")(*this).as<string>();
 	}
@@ -148,26 +160,6 @@ inline string Object::as() const
 	{
 		return *v8::String::Utf8Value(v);
 	}
-}
-
-template<>
-inline Array Object::as() const
-{
-	v8::HandleScope scope;
-
-	if (!v->IsArray())
-	{
-		ofLogError("ofxNodejs") << "!array";
-		return Array();
-	}
-
-	Array result;
-	v8::Local<v8::Array> a = v8::Local<v8::Array>(v8::Array::Cast(*v));
-
-	for (int i = 0; i < a->Length(); i++)
-		result.push_back(a->Get(i));
-
-	return result;
 }
 
 template<>

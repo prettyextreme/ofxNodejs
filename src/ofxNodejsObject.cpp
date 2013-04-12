@@ -59,20 +59,6 @@ Object::Object(const char* o)
 	v = v8::Persistent<v8::Value>::New(v8::String::New(o));
 }
 
-Object::Object(Array o)
-{
-	v8::HandleScope scope;
-	v8::Local<v8::Array> a = v8::Local<v8::Array>(v8::Array::New(o.size()));
-
-	for (int i = 0; i < o.size(); i++)
-	{
-		v8::Handle<v8::Value> p = o[i];
-		a->Set(i, p);
-	}
-
-	v = v8::Persistent<v8::Value>::New(a);
-}
-
 Object::~Object()
 {
 	v8::HandleScope scope;
