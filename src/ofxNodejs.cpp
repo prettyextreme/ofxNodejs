@@ -29,9 +29,10 @@ namespace ofxNodejs
 	class NodeEventListener
 	{
 	public:
-
+		
 		void onUpdate(ofEventArgs&)
 		{
+			v8::HandleScope handle_scope;
 			uv_run(uv_default_loop(), UV_RUN_NOWAIT);
 		}
 
@@ -39,7 +40,6 @@ namespace ofxNodejs
 		{
 			{
 				v8::HandleScope handle_scope;
-				
 				node::EmitExit(process_l);
 				node::RunAtExit();
 			}
@@ -51,6 +51,7 @@ namespace ofxNodejs
 			
 			v8::V8::Dispose();
 		}
+		
 	} listener;
 }
 	
